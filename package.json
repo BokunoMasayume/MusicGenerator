@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/BokunoMasayume/MusicGenerator/issues"
   },
-  "homepage": "https://github.com/BokunoMasayume/MusicGenerator#readme"
+  "homepage": "https://github.com/BokunoMasayume/MusicGenerator#readme",
+  "devDependencies": {
+    "@babel/core": "^7.12.10"
+  }
 }

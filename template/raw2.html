@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>获取音频</title>
+</head>
+<body>
+    <!-- <audio id="audio" autoplay controls></audio> -->
+    <script>
+        window.audiocontext ;
+        window.oscillator;
+        window.gainNode;
+        window.periodicwave;
+        // 2^(1/12)
+        window.step = 1.059463094359295;
+        // A的频率
+        window.base = 440;
+        // 节拍, 单位 秒
+        window.meter = .8;
+
+        window.f0 = base / Math.pow(step, 9);
+        // 一个八度的12个音频率
+        window.frequencyMap = {
+            C: f0,
+        }
+        function initFrequencyMap () {
+            frequencyMap.C$ = frequencyMap.C * step;
+            frequencyMap.D = frequencyMap.C$ * step;
+            frequencyMap.D$ = frequencyMap.D * step;
+            frequencyMap.E = frequencyMap.D$ * step;
+            frequencyMap.F = frequencyMap.E * step;
+            frequencyMap.F$ = frequencyMap.F * step;
+            frequencyMap.G = frequencyMap.F$ * step;
+            frequencyMap.G$ = frequencyMap.G * step;
+            frequencyMap.A = frequencyMap.G$ * step;
+            frequencyMap.A$ = frequencyMap.A * step;
+            frequencyMap.B = frequencyMap.A$ * step;
+        }
+        function init () {
+            initFrequencyMap();
+
+            audiocontext = new AudioContext();
+
+            oscillator = audiocontext.createOscillator();
+            let real = new Float32Array([0, 1, .4 , .3, .26]);
+            let imag = new Float32Array([0, 0, .3 , .2, .1]);
+            periodicwave = audiocontext.createPeriodicWave(real, imag);
+            oscillator.setPeriodicWave(periodicwave);
+            // oscillator.connect(audiocontext.destination);
+
+            gainNode = audiocontext.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audiocontext.destination);
+            // oscillator.start(0);
+            // oscillator.stop(audiocontext.currentTime + 3);
+        }
+        // time 单位 ms
+        function timeholder(time) {
+            return new Promise((res)=>{
+                setTimeout(()=>{
+                    res();
+                }, time * 1000);
+            }); 
+        }
+        // adsr
+        function ADSREnvelope() {
+            console.log('adsr');
+            // gainNode.gain.cancelAndHoldAtTime(audiocontext.currentTime);
+            // gainNode.gain.setValueAtTime(0, audiocontext.currentTime+0.001);
+            // gainNode.gain.linearRampToValueAtTime(0, audiocontext.currentTime + 0.01);
+            gainNode.gain.linearRampToValueAtTime(1, audiocontext.currentTime + 0.1);
+            gainNode.gain.setTargetAtTime(0, audiocontext.currentTime + 0.1, 0.1);
+            gainNode.gain.cancelAndHoldAtTime(audiocontext.currentTime + 0.2);
+            gainNode.gain.setTargetAtTime(0, audiocontext.currentTime + 0.4, 0.3);
+
+        }
+        async function playOne(fre, time) {
+            ADSREnvelope();
+            oscillator.frequency.value = fre;
+            // oscillator.frequency.linearRampToValueAtTime(fre, audiocontext.currentTime + 0.1);
+            await timeholder(time);
+        }
+        async function play() {
+            init();
+            oscillator.start();
+            await playOne(0, meter);
+            //6
+            await playOne(frequencyMap.A, meter * .5);
+            //7
+            await playOne(frequencyMap.B, meter * .5);
+
+            //h1
+            // oscillator.frequency.value = frequencyMap.C * 2;
+            // await timeholder(meter * 1.5);
+            await playOne(frequencyMap.C * 2, meter * 1.5);
+            //7
+            // oscillator.frequency.value = frequencyMap.B;
+            // await timeholder(meter * .5);
+            await playOne(frequencyMap.B , meter * .5);
+            //h1
+            // oscillator.frequency.value = frequencyMap.C * 2;
+            // await timeholder(meter );
+            await playOne(frequencyMap.C * 2, meter);
+            //h3
+            // oscillator.frequency.value = frequencyMap.E * 2;
+            // await timeholder(meter);
+            await playOne(frequencyMap.E * 2, meter);
+
+            //7
+            // oscillator.frequency.value = frequencyMap.B;
+            // await timeholder(meter * 3);
+            await playOne(frequencyMap.B, meter * 3);
+            //3
+            // oscillator.frequency.value = frequencyMap.E;
+            // await timeholder(meter );
+            await playOne(frequencyMap.E, meter);
+            //6
+            // oscillator.frequency.value = frequencyMap.A;
+            // await timeholder(meter * 1.5);
+            await playOne(frequencyMap.A, meter * 1.5);
+            //5
+            // oscillator.frequency.value = frequencyMap.G;
+            // await timeholder(meter * .5);
+            await playOne(frequencyMap.G, meter * .5);
+            //6
+            // oscillator.frequency.value = frequencyMap.A;
+            // await timeholder(meter );
+            await playOne(frequencyMap.A, meter);
+            // h1
+            // oscillator.frequency.value = frequencyMap.C * 2;
+            // await timeholder(meter );
+            await playOne(frequencyMap.C * 2, meter);
+
+            // 5
+            await playOne(frequencyMap.G, meter * 3);
+            // 2
+            await playOne(frequencyMap.D, meter * .5);
+            //3
+            await playOne(frequencyMap.E, meter * .5);
+
+            //4
+            await playOne(frequencyMap.F, meter * 1.5);
+            await playOne(frequencyMap.E, meter * .5);
+            await playOne(frequencyMap.F, meter * .5);
+            //h1
+            await playOne(frequencyMap.C * 2, meter* 1.5);
+
+            //7
+            await playOne(frequencyMap.B, meter * 1.5);
+            // #4
+            await playOne(frequencyMap.F, meter * .5);            
+            await playOne(frequencyMap.F, meter );
+            // 7
+            await playOne(frequencyMap.B, meter);
+            
+            //7
+            await playOne(frequencyMap.B, meter * 3);
+            //6
+            await playOne(frequencyMap.A, meter * .5);
+            //7
+            await playOne(frequencyMap.B, meter * .5);
+
+            //h1
+            await playOne(frequencyMap.C * 2, meter * 1.5);
+            //7
+            await playOne(frequencyMap.B, meter * .5);
+            //h1
+            await playOne(frequencyMap.C * 2, meter);
+            //h3
+            await playOne(frequencyMap.E * 2, meter);
+
+            //7
+            await playOne(frequencyMap.B, meter * 3);
+            //3
+            await playOne(frequencyMap.E, meter);
+
+            //6
+            await playOne(frequencyMap.A, meter * 1.5);
+            //5
+            await playOne(frequencyMap.G, meter * .5);
+            //6
+            await playOne(frequencyMap.A, meter );
+            //h1
+            await playOne(frequencyMap.C *2, meter);
+
+            //5
+            await playOne(frequencyMap.G, meter * 3);
+            //3
+            await playOne(frequencyMap.E, meter);
+
+            
+            oscillator.stop();
+
+        }
+        document.addEventListener('click', play);
+
+        const defaultConfig = {
+            base: 440,
+            meter: 1,
+        }
+        class MusicGenerator {
+            constructor(config) {
+                let con = Object.assign({}, defaultConfig, config);
+                this.base = con.base;
+                this.meter = con.meter;
+
+                this.f0 = this.base / Math.pow(MusicGenerator.step, 9);
+
+                this.audiocontext = new AudioContext();
+                this.oscillator = this.audiocontext.createOscillator();
+                this.frequencyMap = this.initFrequencyMap();
+            }
+            // 2^(1/12)
+            static step = 1.059463094359295;
+    
+            audiocontext ;
+            oscillator;
+            // A的频率
+            base = 440;
+            // 节拍, 单位 秒
+            meter = 1;
+            // 基因
+            f0 ;
+            // 一个八度的12个音频率
+            frequencyMap ;
+
+            initFrequencyMap () {
+                let frequencyMap = {
+                    C: this.f0
+                }
+
+                frequencyMap.C$ = frequencyMap.C * step;
+                frequencyMap.D = frequencyMap.C$ * step;
+                frequencyMap.D$ = frequencyMap.D * step;
+                frequencyMap.E = frequencyMap.D$ * step;
+                frequencyMap.F = frequencyMap.E * step;
+                frequencyMap.F$ = frequencyMap.F * step;
+                frequencyMap.G = frequencyMap.F$ * step;
+                frequencyMap.G$ = frequencyMap.G * step;
+                frequencyMap.A = frequencyMap.G$ * step;
+                frequencyMap.A$ = frequencyMap.A * step;
+                frequencyMap.B = frequencyMap.A$ * step;
+
+                return frequencyMap;
+            }
+
+            // 时间单位 ms
+            timeholder(time) {
+
+            }
+
+            // 时间单位 ms
+            async playOne(fre, time) {
+
+            }
+        }
+    </script>
+</body>
+</html>
