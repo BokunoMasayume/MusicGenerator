@@ -1,0 +1,27 @@
+{
+    "compilerOptions": {
+        "target": "es2018",
+        "lib": [ "ESNext", "DOM" ],
+        "module": "ESNext",
+        "allowJs": true,
+        "checkJs": false,
+        "removeComments": true,
+        "downlevelIteration": true,
+        "strict": true,
+        "allowSyntheticDefaultImports": true,
+        "noImplicitAny": false,
+        "importHelpers": true,
+        "baseUrl": ".",
+        "declaration": true,
+        "moduleResolution": "node",
+        "paths": {
+            // "@ks/*": ["./packages/*/src"]
+        }
+    },
+    "include": [
+        "./src/*.ts"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+}

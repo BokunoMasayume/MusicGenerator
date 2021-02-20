@@ -14,6 +14,12 @@ type MusicGeneratorConfig = {
 
 type MusicSheet = (number|string)[]; // frequency : time in METER 
 
+enum MusicGeneratorState {
+    Idle,
+    Playing,
+    Pause,
+    Stopped
+}
 
 // type FrequencyMap = {
 //     C:number;
@@ -84,6 +90,8 @@ export class MusicGenerator {
         this._frequencyMap = fm;
     }
 
+    private _state: MusicGeneratorState = MusicGeneratorState.Idle; 
+
 
     /**
      * 链接使用的节点, 目前有oscillator, gain, destination
@@ -109,15 +117,25 @@ export class MusicGenerator {
     }
 
     public async playSheet() {
+        if (this._state === MusicGeneratorState.Playing) {
+            return;
+        }
+        this._state = MusicGeneratorState.Playing;
         let { sheet, source, meter } = this;
         if ( !sheet) {
             console.warn('Warinning in playSheet, sheet not been set');
             return;
         }
-        source.getNode().start();
+        // source.getNode().stop();
+        try{
+            source.getNode().start();
+        } catch (e) {
+
+        }
         for (let i:number = 0; i < sheet.length ; i+=2 ) {
 
             await this.playOne(sheet[i], (sheet[i+1] as number) * meter);
         }
+        this._state = MusicGeneratorState.Stopped;
     }
 }

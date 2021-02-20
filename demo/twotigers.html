@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>两只老虎</title>
+</head>
+<body>
+    <div>
+        点击窗口播放/停止
+    </div>
+    <script src="../dist/bundle.js"></script>
+    <script>
+        let musicGenerator = new MusicGenerator.MusicGenerator();
+        musicGenerator.setSheet([
+            'C', .5,
+            'D', .5,
+            'E', .5,
+            'C', .5,
+
+            'C', .5,
+            'D', .5,
+            'E', .5,
+            'C', .5,
+
+            'E', .5,
+            'F', .5,
+            'G', 1,
+
+            'E', .5,
+            'F', .5,
+            'G', 1,
+        ]);
+        document.addEventListener('click', ()=>{
+            musicGenerator.playSheet()
+        });
+    </script>
+</body>
+</html>
