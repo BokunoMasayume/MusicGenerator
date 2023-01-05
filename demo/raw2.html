@@ -6,6 +6,7 @@
     <title>获取音频</title>
 </head>
 <body>
+    点击播放
     <!-- <audio id="audio" autoplay controls></audio> -->
     <script>
         window.audiocontext ;
@@ -24,6 +25,7 @@
         window.frequencyMap = {
             C: f0,
         }
+        window.once = false;
         function initFrequencyMap () {
             frequencyMap.C$ = frequencyMap.C * step;
             frequencyMap.D = frequencyMap.C$ * step;
@@ -82,6 +84,8 @@
             await timeholder(time);
         }
         async function play() {
+            if (once) return;
+            once = true;
             init();
             oscillator.start();
             await playOne(0, meter);
