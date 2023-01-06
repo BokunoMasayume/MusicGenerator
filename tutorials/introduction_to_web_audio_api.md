@@ -107,3 +107,154 @@ endTime不能使用0, 而必须是一个正数.
 ## 创建Sound类
 
 一旦你停止一个震荡器, 你就不能再次启动它了, 这个是Web Audio API做的性能优化. 我们需要做的是创建一个sound类来负责创建震荡器节点, 播放和停止节点. 这样我们就可以多次播放声音了.
+
+```javascript
+class Sound {
+  constructor(context) {
+    this.context = context;
+  }
+
+  init() {
+    this.oscillator = this.context.createOscillator();
+    this.gainNode = this.context.createGain();
+
+    this.oscillator.connect(this.gainNode);
+    this.gainNode.connect(this.context.destination);
+    this.oscillator.type = 'sine';
+  }
+
+  play(value, time) {
+    this.init();
+
+    this.oscillator.frequency.value = value;
+    this.gainNode.gain.setValueAtTime(1, this.context.currentTime);
+
+    this.oscillator.start(time);
+    this.stop(time);
+  }
+
+  stop(time) {
+    this.gainNode.gain.exponentialRampToValueAtTime(0.001, time + 1);
+    this.oscillator.stop(time + 1);
+  }
+}
+
+let context = new (window.AudioContext || window.webkitAudioContext)();
+let 1note1 = new Sound(context);
+let now = context.currentTime;
+1note1.play(261.63, now); // C
+1note1.play(293.66, now + 0.5); // D
+1note1.play(329.63, now + 1); // E
+1note1.play(349.23, now + 1.5); // F
+1note1.play(392.00, now + 2); // G
+1note1.play(440.00, now + 2.5); // A
+1note1.play(493.88, now + 3); // B
+1note1.play(523.25, now + 3.5); // C
+```
+
+## 使用录制的声音
+
+现在你已经搞了个震荡器做了些东西, 现在用用录制的声音. 一些声音很难用震荡器生产. 为了在某些场景使用真实的声音, 你需要使用录制的声音. 
+
+你不能像使用图片那样简单的通过URL获取声音, 你们需要用XHR来获取文件, 解码数据, 以及把它们放在buffer里.
+
+```javascript
+class Buffer {
+
+  constructor(context, urls) {
+    this.context = context;
+    this.urls = urls;
+    this.buffer = [];
+  }
+
+  loadSound(url, index) {
+    let request = new XMLHttpRequest();
+    request.open('get', url, true);
+    request.responseType = 'arraybuffer';
+    let thisBuffer = this;
+    request.onload = function() {
+      thisBuffer.context.decodeAudioData(request.response, function(buffer) {
+        thisBuffer.buffer[index] = buffer;
+        updateProgress(thisBuffer.urls.length);
+        if (index === thisBuffer.urls.length - 1) {
+          thisBuffer.loaded();
+        }
+      });
+    }
+    request.send();
+  }
+
+
+  loadAll() {
+    this.urls.forEach((url, index) => {
+      this.loadSound(url, index);
+    })
+  }
+
+  loaded() {
+    // what happens when all the files are loaded
+  }
+
+  getSoundByIndex(index) {
+    return this.buffer[index];
+  }
+}
+```
+
+decodeAudioData方法有一个新的基于promise的语法, 不过在Safari上还没有支持
+
+```javascript
+context.decodeAudioData(audioData).then(function(decodedData) {
+  // do something
+})
+```
+
+接下来我们要创建声音的类. 
+
+```javascript
+class Sound {
+
+  constructor(context, buffer) {
+    this.context = context;
+    this.buffer = buffer;
+  }
+
+  init() {
+    this.gainNode = this.context.createGain();
+    this.source = this.context.createBufferSource();
+    this.source.buffer = this.buffer;
+    this.source.connect(this.gainNode);
+    this.gainNode.connect(this.context.destination);
+  }
+
+  play() {
+    this.setup();
+    this.source.start(this.context.currentTime);
+  }
+
+  stop() {
+    this.gainNode.gain.exponentialRampToValueAtTime(0.001, this.context.currentTime + 0.5);
+    this.source.stop(this.context.currentTime + 0.5);
+  }
+}
+
+let buffer = new Buffer(context, sounds);
+buffer.loadAll();
+
+sound = new Sound(context, buffer.getSoundByIndex(id));
+sound.play();
+```
+
+## 介绍滤波器
+
+Web Audio API允许你在声音源和目的节点之间添加不同种类的滤波器节点.BiquadFilterNode(双二阶滤波器)是一个简单的底层滤波器, 让你可以控制哪些频率部分需要增强, 哪些需要减弱.通过这个你可以制作均衡器应用或者其他效果.一共有8种类型的双二阶滤波器: highpass, lowpass, bandpass, lowshelf, highshelf, peaking, notch, allpass.
+
+**Highpass**是一个通过信号的高频率部分, 减弱信号的低频率部分的滤波器. **Lowpass**是通过低频率部分, 减弱高频率.它们也叫“low cut”和“high cut”滤波器, 因为这两个名字解释信号发生了什么.
+
+**HighShelf**和**Lowshelf**滤波器是用来控制声音的低音(bass)和高音(treble)部分. 它们用来增强或减弱信号高于或低于给定频率的部分.
+
+在双二阶滤波器接口上有一个Q属性, 它是代表Q(quality) Factor的双精度浮点数.Q因数控制带宽(bandwidth), 受影响的频率数量. Q因数越低, 带宽越宽, 意味着越多的频率会受到影响. Q因数越高, 带宽越窄.
+
+在[这里](https://www.w3.org/TR/webaudio/#the-biquadfilternode-interface)你能找到更多关于滤波器的信息, 不过现在我们已经可以做一个参数调节均衡器了.
+
+我们还可以扭曲(distortion)声音, 如果你想要制作电吉他的声音, 这就是一个扭曲效果. 我们使用**WaveShaperNode**接口来代表非线形的扭曲. 我们需要做的就是创建一个曲线来对信号进行塑形, 扭曲和生产电音. 我们不需要花费很多时间来创建这个曲线, 有[现成的](https://stackoverflow.com/questions/22312841/waveshaper-node-in-webaudio-how-to-emulate-distortion/22313408#22313408)
